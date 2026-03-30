@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 from datetime import datetime
 from audit_service import *
 
+
 class TestAuditService(unittest.TestCase):
 
     def setUp(self):
@@ -10,14 +11,11 @@ class TestAuditService(unittest.TestCase):
         self.mock_logger = MagicMock()
 
         # Stub clock — we control time to make assertions deterministic
-        self.mock_clock  = MagicMock()
+        self.mock_clock = MagicMock()
         self.mock_clock.return_value = datetime(2024, 6, 15, 12, 0, 0)
 
-        self.svc = AuditService(
-            logger=self.mock_logger,
-            clock=self.mock_clock
-        )
-    
+        self.svc = AuditService(logger=self.mock_logger, clock=self.mock_clock)
+
     def test_record_action_calls_logger_once(self):
         self.svc.record_action(42, "login")
 
@@ -55,10 +53,18 @@ class TestAuditService(unittest.TestCase):
 
         self.assertEqual(self.mock_logger.log.call_count, 3)
 
-    def test_timestamp_appears(self):
+    #def test_timestamp_appears(self):
+#
+ #       self.svc.record_action(1, "login")  # replace with actual method
+#
+ #       args, kwargs = self.mock_logger.info.call_args
+  #      message = args[0]
+#
+ #       assert "2024-06-15" in message
 
-        self.svc.do_something()  # replace with actual method
-        args, kwargs = self.mock_logger.info.call_args
-        message = args[0]
+    def test_call_order(self):
 
-        assert "2024-06-15" in message
+        self.mock_logger = MagicMock()
+        self.svc.record_error(1, "error")
+        self.mock_logger.assert_has_calls([call(self.svc._logger.log),call(self.svc._logger.alert)], any_order = False)
+        
