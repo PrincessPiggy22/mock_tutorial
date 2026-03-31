@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, Mock
 from datetime import datetime
 from audit_service import *
 
@@ -53,18 +53,33 @@ class TestAuditService(unittest.TestCase):
 
         self.assertEqual(self.mock_logger.log.call_count, 3)
 
-    #def test_timestamp_appears(self):
-#
- #       self.svc.record_action(1, "login")  # replace with actual method
-#
- #       args, kwargs = self.mock_logger.info.call_args
-  #      message = args[0]
-#
- #       assert "2024-06-15" in message
+    def test_verify_timestamp(self):
+        self.svc.record_action(42, "login")
+ 
+        _, kwargs = self.mock_logger.log.call_args
+        message = kwargs["message"]
+ 
+        self.assertIn("2024-06-15", message)
 
-    def test_call_order(self):
+    def test_record_error_calls_in_order(self):
+        mock_logger = Mock()
 
-        self.mock_logger = MagicMock()
-        self.svc.record_error(1, "error")
-        self.mock_logger.assert_has_calls([call(self.svc._logger.log),call(self.svc._logger.alert)], any_order = False)
+        # Fixed clock
+        mock_clock = Mock(
+            return_value=Mock(isoformat=lambda: "2026-01-01T00:00:00")
+        )
+
+        service = AuditService(logger=mock_logger, clock=mock_clock)
+
+        # Act
+        service.record_error(user_id=42, error="Something broke")
+
+        # Assert order (looser check)
+        mock_logger.assert_has_calls([
+            call.log(
+                level="ERROR",
+                message="[2026-01-01T00:00:00] user=42 error=Something broke",
+            ),
+            call.alert("Error for user 42"),
+        ])
         
